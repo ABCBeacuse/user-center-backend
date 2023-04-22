@@ -1,6 +1,8 @@
 spring:
   application:
-    name: user-center
+    name: yupao_backend
+  profiles:
+    active: dev
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
@@ -8,11 +10,15 @@ spring:
     url: jdbc:mysql://localhost:3306/usercenter
   session:
     timeout: 86400
+  mvc:
+    pathmatch:
+      matching-strategy: ANT_PATH_MATCHER
 
 # 任何环境都一样的配置写到 公共配置 application.yml 中就行
 mybatis-plus:
   configuration:
     mapUnderscoreToCamelCase: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       logic-delete-field: isDelete # 全局逻辑删除的实体字段名(since 3.3.0,配置后可以忽略不配置步骤2)
@@ -24,4 +30,5 @@ server:
   port: 8080
   servlet:
     context-path: /api
+
 
