@@ -1,8 +1,10 @@
 package com.example.yupao_backend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.yupao_backend.common.ErrorCode;
+import com.example.yupao_backend.common.ResultUtils;
 import com.example.yupao_backend.exception.BussinessException;
 import com.example.yupao_backend.module.domain.User;
 import com.example.yupao_backend.service.UserService;
@@ -11,6 +13,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
@@ -22,10 +26,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static com.example.yupao_backend.constant.UserConstant.ADMIN_ROLE;
 import static com.example.yupao_backend.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
@@ -41,6 +47,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     /**
      *  盐值，混淆密码
@@ -237,6 +246,104 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         List<User> userList = userMapper.selectList(queryWrapper);
         // 用户信息脱敏
         return userList.stream().map(this::getSafetyUser).collect(Collectors.toList());
+    }
+
+    /**
+     *
+     * @param user
+     * @param loginUser
+     * @return
+     */
+    @Override
+    public int updateUser(User user, User loginUser) {
+        long userId = user.getId();
+        // id 都大于等于 0
+        if(userId <= 0){
+            throw new BussinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // todo 补充校验，如果用户没有传任何要更新的值，就直接报错，不用执行 update 语句
+
+        // 判断是否为管理员或者用户本人，管理员可以修改任何人的信息，不是管理员的话只能修改自己的信息
+        if(!isAdmin(loginUser) && user.getId() != loginUser.getId()){
+            throw new BussinessException(ErrorCode.NOT_AUTH);
+        }
+
+        User oldUser = userMapper.selectById(userId);
+        if(oldUser == null){
+            throw new BussinessException(ErrorCode.NULL_ERROR);
+        }
+        // 返回更新条数，一般通过Id更新，结果为 0 或 1
+        return userMapper.updateById(user);
+    }
+
+    /**
+     * 获取当前登录用户
+     * @param request
+     * @return
+     */
+    @Override
+    public User getLoginUser(HttpServletRequest request) {
+        if(request == null){
+            throw new BussinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        // 每次获取当前用户，都要进行一次判空
+        if(userObj == null){
+            throw new BussinessException(ErrorCode.NOT_AUTH);
+        }
+        return (User) userObj;
+    }
+
+    /**
+     * 根据不同登录用户返回不同的用户推荐列表（添加 Redis 缓存）
+     * @param pageNum
+     * @param pageSize
+     * @param userId
+     * @return
+     */
+    @Override
+    public List<User> getRecommendUsers(long pageNum, long pageSize, long userId) {
+        String redisKey = String.format("yupao:user:recommed:%s", userId);
+        ValueOperations<String, Object> redisOperations = redisTemplate.opsForValue();
+        // 先查缓存中是否存储
+        List<User> userList = (List<User>) redisOperations.get(redisKey);
+        if(userList != null){
+            return userList;
+        }
+        // 如果缓存中没有存储, 就去查数据库
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        Page<User> userPage = this.page(new Page<>(pageNum, pageSize), queryWrapper);
+        userList = userPage.getRecords().stream().map(this::getSafetyUser).collect(Collectors.toList());
+        // 查数据库后写缓存
+        try {
+            // 使用 try-catch 包括, 即使写缓存写失败了也会正常返回数据信息。30s 过期
+            redisOperations.set(redisKey, userList, 30000, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            log.error("redis set key error", e);
+        }
+        return userList;
+    }
+
+    /**
+     * 判断用户是否为管理员
+     * @param request
+     * @return
+     */
+    @Override
+    public Boolean isAdmin(HttpServletRequest request) {
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User user = (User) userObj;
+        return user != null && user.getUserRole() == ADMIN_ROLE;
+    }
+
+    /**
+     * 判断用户是否为管理员
+     * @param loginuser
+     * @return
+     */
+    @Override
+    public Boolean isAdmin(User loginuser) {
+        return loginuser != null && loginuser.getUserRole() == ADMIN_ROLE;
     }
 }
 

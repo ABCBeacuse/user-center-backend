@@ -9,6 +9,7 @@ import com.example.yupao_backend.module.domain.User;
 import com.example.yupao_backend.module.domain.request.UserLoginRequest;
 import com.example.yupao_backend.module.domain.request.UserRegisterRequest;
 import com.example.yupao_backend.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
@@ -18,12 +19,12 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.example.yupao_backend.constant.UserConstant.ADMIN_ROLE;
 import static com.example.yupao_backend.constant.UserConstant.USER_LOGIN_STATE;
 
 @RestController
 @RequestMapping("/user")
-@CrossOrigin(origins = { "http://127.0.0.1:5173" })
+@CrossOrigin(origins = { "http://127.0.0.1:5173" },allowCredentials = "true")
+@Slf4j
 public class UserServiceController {
 
     @Resource
@@ -90,7 +91,7 @@ public class UserServiceController {
 
     @GetMapping("/search")
     public BaseResponse<List<User>> searchUsers(String userName, HttpServletRequest request){
-        if( !isAdmin(request) ){
+        if( !userService.isAdmin(request) ){
             throw new BussinessException(ErrorCode.NOT_AUTH);
         }
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
@@ -103,6 +104,27 @@ public class UserServiceController {
         return ResultUtils.success(list);
     }
 
+    /**
+     * 获取推荐用户
+     * @param request
+     * @return
+     */
+    @GetMapping("/recommend")
+    public BaseResponse<List<User>> recommendUsers(long pageNum, long pageSize, HttpServletRequest request){
+        // getLoginUser() 方法已经对是否登录做出了判断
+        User loginUser = userService.getLoginUser(request);
+        List<User> userList = userService.getRecommendUsers(pageNum, pageSize, loginUser.getId());
+        return ResultUtils.success(userList);
+    }
+    @PostMapping("/update")
+    public BaseResponse<Integer> updateUser(@RequestBody User user, HttpServletRequest request){
+        if(user == null){
+            throw new BussinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        int result = userService.updateUser(user, loginUser);
+        return ResultUtils.success(result);
+    }
     @GetMapping("/search/tags")
     public BaseResponse<List<User>> searchUsersByTags(@RequestParam(required = false) List<String> tagNameList ){
         if(CollectionUtils.isEmpty(tagNameList)){
@@ -113,7 +135,7 @@ public class UserServiceController {
     }
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteUser(@RequestBody Long userId, HttpServletRequest request ){
-        if( !isAdmin(request) ){
+        if( !userService.isAdmin(request) ){
             throw new BussinessException(ErrorCode.NOT_AUTH);
         }
         if( userId <= 0 ) {
@@ -124,14 +146,4 @@ public class UserServiceController {
         return ResultUtils.success(result);
     }
 
-    /**
-     * 是否为管理员
-     * @param httpServletRequest
-     * @return
-     */
-    private boolean isAdmin(HttpServletRequest httpServletRequest){
-        Object userObj = httpServletRequest.getSession().getAttribute(USER_LOGIN_STATE);
-        User user = (User) userObj;
-        return user != null && user.getUserRole() == ADMIN_ROLE;
-    }
 }
