@@ -19,7 +19,7 @@ public class InsertUsers {
      * fixedRate = Long.MAX_VALUE 用来保证该定时任务只执行一次
      * StopWatch 为 spring 自带的一个工具类，用来记录程序执行时间
      */
-    @Scheduled(initialDelay = 5000, fixedRate = Long.MAX_VALUE)
+//    @Scheduled(initialDelay = 5000, fixedRate = Long.MAX_VALUE)
     public void doInsertUsers(){
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();

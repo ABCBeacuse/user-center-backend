@@ -10,6 +10,9 @@ import com.example.yupao_backend.module.domain.Team;
 import com.example.yupao_backend.module.domain.User;
 import com.example.yupao_backend.module.dto.TeamQuery;
 import com.example.yupao_backend.module.request.TeamAddRequest;
+import com.example.yupao_backend.module.request.TeamJoinRequest;
+import com.example.yupao_backend.module.request.TeamUpdateRequest;
+import com.example.yupao_backend.module.vo.TeamUserVO;
 import com.example.yupao_backend.service.TeamService;
 import com.example.yupao_backend.service.UserService;
 import org.springframework.beans.BeanUtils;
@@ -55,15 +58,12 @@ public class TeamServiceController {
     }
 
     @PostMapping("/update")
-    public BaseResponse<Boolean> updateTeam(@RequestBody Team team) {
-        if(team == null) {
+    public BaseResponse<Boolean> updateTeam(@RequestBody TeamUpdateRequest teamUpdateRequest, HttpServletRequest httpServletRequest) {
+        if(teamUpdateRequest == null) {
             throw new BussinessException(ErrorCode.PARAMS_ERROR);
         }
-        /*
-        * 这里的 updateById 中传入的 team 对象一定要有一个 id, id 指的是要更新哪条信息的 id
-        * 返回 false 的情况：1. 传入的 team 的所有字段和原来的一样 2. 传入的 team 的 id 值在数据库找不到
-        */
-        boolean result = teamService.updateById(team);
+        User loginUser = userService.getLoginUser(httpServletRequest);
+        boolean result = teamService.updateTeam(teamUpdateRequest, loginUser);
         if(!result) {
             throw new BussinessException(ErrorCode.SYSTEM_ERROR, "更新失败");
         }
@@ -83,17 +83,13 @@ public class TeamServiceController {
     }
 
     @GetMapping("/list")
-    public BaseResponse<List<Team>> getTeams(TeamQuery teamQuery) {
+    public BaseResponse<List<TeamUserVO>> getTeams(TeamQuery teamQuery, HttpServletRequest httpServletRequest) {
         if(teamQuery == null){
             throw new BussinessException(ErrorCode.PARAMS_ERROR);
         }
-        // 需要做一个 TeamQuery 到 Team 的映射，这里先做一个强转。将 teamQuery 的字段值全部设置给 team
-        Team team = new Team();
-        BeanUtils.copyProperties(teamQuery, team);
-        // QueryWrapper 会根据传递的 team 中的字段值去进行条件搜索，这样不能支持模糊查询
-        QueryWrapper<Team> queryWrapper = new QueryWrapper<>(team);
-        List<Team> list = teamService.list(queryWrapper);
-        return ResultUtils.success(list);
+        Boolean isAdmin = userService.isAdmin(httpServletRequest);
+        List<TeamUserVO> teamList =  teamService.listTeams(teamQuery, isAdmin);
+        return ResultUtils.success(teamList);
     }
 
     @GetMapping("/list/page")
@@ -109,5 +105,15 @@ public class TeamServiceController {
         QueryWrapper<Team> queryWrapper = new QueryWrapper<>(team);
         Page<Team> resultPage = teamService.page(page, queryWrapper);
         return ResultUtils.success(resultPage);
+    }
+
+    @PostMapping("/join")
+    public BaseResponse<Boolean> joinTeam(@RequestBody TeamJoinRequest teamJoinRequest, HttpServletRequest httpServletRequest) {
+        if (teamJoinRequest == null) {
+            throw new BussinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(httpServletRequest);
+        boolean result =  teamService.joinTeam(teamJoinRequest, loginUser);
+        return ResultUtils.success(result);
     }
 }

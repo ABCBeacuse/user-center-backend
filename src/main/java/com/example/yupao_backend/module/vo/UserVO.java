@@ -1,22 +1,23 @@
-package com.example.yupao_backend.module.domain;
+package com.example.yupao_backend.module.vo;
 
-import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 用户表
- * @TableName user
+ * 用户信息包装类（脱敏）
+ *
+ * @author yupi
  */
-@TableName(value ="user")
 @Data
-public class User implements Serializable {
+public class UserVO implements Serializable {
+
+    private static final long serialVersionUID = 6440094629959283217L;
+
     /**
      * 用户 ID
      */
-    @TableId(type = IdType.AUTO)
     private long id;
 
     /**
@@ -33,11 +34,6 @@ public class User implements Serializable {
      * 性别
      */
     private Integer gender;
-
-    /**
-     * 用户密码
-     */
-    private String userPassword;
 
     /**
      * 用户账号
@@ -75,12 +71,6 @@ public class User implements Serializable {
     private String tags;
 
     /**
-     * 逻辑删除
-     */
-    @TableLogic
-    private Integer isDelete;
-
-    /**
      * 用户角色  0 - 普通用户  1 - 管理员
      */
     private Integer userRole;
@@ -95,6 +85,4 @@ public class User implements Serializable {
      */
     private String userProfile;
 
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
 }
