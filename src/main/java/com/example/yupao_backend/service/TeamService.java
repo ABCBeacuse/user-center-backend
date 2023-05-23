@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.example.yupao_backend.module.domain.User;
 import com.example.yupao_backend.module.dto.TeamQuery;
 import com.example.yupao_backend.module.request.TeamJoinRequest;
+import com.example.yupao_backend.module.request.TeamQuitRequest;
 import com.example.yupao_backend.module.request.TeamUpdateRequest;
 import com.example.yupao_backend.module.vo.TeamUserVO;
 
@@ -49,4 +50,20 @@ public interface TeamService extends IService<Team> {
      * @return
      */
     boolean joinTeam(TeamJoinRequest teamJoinRequest, User loginUser);
+
+    /**
+     * 退出队伍
+     * @param teamQuitRequest 需要退出的队伍请求
+     * @param loginUser 当前登录用户
+     * @return
+     */
+    boolean quitTeam(TeamQuitRequest teamQuitRequest, User loginUser);
+
+    /**
+     * 队长解散（删除）队伍
+     * @param id 队伍 ID
+     * @param loginUser 当前登录用户
+     * @return
+     */
+    boolean removeTeam(long id, User loginUser);
 }

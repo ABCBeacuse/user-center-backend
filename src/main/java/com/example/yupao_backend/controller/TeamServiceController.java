@@ -11,6 +11,7 @@ import com.example.yupao_backend.module.domain.User;
 import com.example.yupao_backend.module.dto.TeamQuery;
 import com.example.yupao_backend.module.request.TeamAddRequest;
 import com.example.yupao_backend.module.request.TeamJoinRequest;
+import com.example.yupao_backend.module.request.TeamQuitRequest;
 import com.example.yupao_backend.module.request.TeamUpdateRequest;
 import com.example.yupao_backend.module.vo.TeamUserVO;
 import com.example.yupao_backend.service.TeamService;
@@ -43,18 +44,6 @@ public class TeamServiceController {
         BeanUtils.copyProperties(teamAddRequest, team);
         long teamId = teamService.addTeam(team, loginUser);
         return ResultUtils.success(teamId);
-    }
-
-    @PostMapping("/delete")
-    public BaseResponse<Boolean> deleteTeam(@RequestBody long id) {
-        if(id <= 0) {
-            throw new BussinessException(ErrorCode.PARAMS_ERROR);
-        }
-        boolean result = teamService.removeById(id);
-        if(!result){
-            throw new BussinessException(ErrorCode.SYSTEM_ERROR, "删除失败");
-        }
-        return ResultUtils.success(true);
     }
 
     @PostMapping("/update")
@@ -115,5 +104,28 @@ public class TeamServiceController {
         User loginUser = userService.getLoginUser(httpServletRequest);
         boolean result =  teamService.joinTeam(teamJoinRequest, loginUser);
         return ResultUtils.success(result);
+    }
+
+    @PostMapping("/quit")
+    public BaseResponse<Boolean> quitTeam(@RequestBody TeamQuitRequest teamQuitRequest,HttpServletRequest httpServletRequest) {
+        if (teamQuitRequest == null) {
+            throw new BussinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(httpServletRequest);
+        boolean result = teamService.quitTeam(teamQuitRequest, loginUser);
+        return ResultUtils.success(result);
+    }
+
+    @PostMapping("/delete")
+    public BaseResponse<Boolean> deleteTeam(@RequestBody long id, HttpServletRequest httpServletRequest) {
+        if(id <= 0) {
+            throw new BussinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(httpServletRequest);
+        boolean result = teamService.removeTeam(id, loginUser);
+        if(!result){
+            throw new BussinessException(ErrorCode.SYSTEM_ERROR, "删除失败");
+        }
+        return ResultUtils.success(true);
     }
 }

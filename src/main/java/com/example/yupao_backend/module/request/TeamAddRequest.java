@@ -5,6 +5,10 @@ import lombok.Data;
 import java.io.Serializable;
 import java.util.Date;
 
+/**
+ * 添加队伍请求体
+ *
+ */
 @Data
 public class TeamAddRequest implements Serializable {
 
