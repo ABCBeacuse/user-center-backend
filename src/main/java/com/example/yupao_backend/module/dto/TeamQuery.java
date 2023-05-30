@@ -4,6 +4,8 @@ import com.example.yupao_backend.common.PageRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.List;
+
 /**
  * 队伍查询封装类
  */
@@ -14,6 +16,11 @@ public class TeamQuery extends PageRequest {
      * 队伍 ID
      */
     private Long id;
+
+    /**
+     * 队伍 ID 列表
+     */
+    private List<Long> ids;
 
     /**
      * 关键词搜索
@@ -44,5 +51,5 @@ public class TeamQuery extends PageRequest {
     /**
      * 0 - 公开，1 - 私有，2 - 加密
      */
-    private Integer status;
+    private List<Integer> statuses;
 }

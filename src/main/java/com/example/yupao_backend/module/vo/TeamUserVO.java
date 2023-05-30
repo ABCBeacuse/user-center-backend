@@ -52,6 +52,11 @@ public class TeamUserVO implements Serializable {
     private Integer status;
 
     /**
+     * 当前登录用户是否加入该队伍
+     */
+    private boolean hasJoin = false;
+
+    /**
      * 创建时间
      */
     private Date createTime;

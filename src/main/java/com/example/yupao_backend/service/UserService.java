@@ -2,6 +2,7 @@ package com.example.yupao_backend.service;
 
 import com.example.yupao_backend.module.domain.User;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.example.yupao_backend.module.vo.UserVO;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -93,4 +94,12 @@ public interface UserService extends IService<User> {
      * @return
      */
     Boolean isAdmin(User user);
+
+    /**
+     * 获取当前登录用户的推荐用户
+     *
+     * @param loginUser
+     * @return
+     */
+    List<UserVO> matchUsers(Long num, User loginUser);
 }
