@@ -175,8 +175,8 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
 //            }
 //            queryWrapper.eq("status", statusEnum.getValue());
             List<Integer> statuses = Optional.ofNullable(teamQuery.getStatuses()).orElse(Collections.singletonList(0));
-            // 根据状态列表来查询
-            if (!isAdmin && (statuses.contains(1) || statuses.contains(2))) {
+            // 根据状态列表来查询（允许非管理员查看公开与加密房间）
+            if (!isAdmin && statuses.contains(1)) {
                 throw new BussinessException(ErrorCode.NOT_AUTH);
             }
             queryWrapper.in("status", statuses);

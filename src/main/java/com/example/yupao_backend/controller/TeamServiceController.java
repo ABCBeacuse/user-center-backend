@@ -86,9 +86,9 @@ public class TeamServiceController {
         }
         Boolean isAdmin = userService.isAdmin(httpServletRequest);
         List<TeamUserVO> userTeamList = teamService.listTeams(teamQuery, isAdmin);
-        // 获取查询出来的所有队伍 ID
+        // 1. 获取查询出来的所有队伍 ID
         List<Long> teamIds = userTeamList.stream().map(TeamUserVO::getId).collect(Collectors.toList());
-        // 判断当前登录用户是否加入查询出来的队伍，完善TeamUserVO 的 hasJoin 字段.
+        // 2. 判断当前登录用户是否加入查询出来的队伍，完善TeamUserVO 的 hasJoin 字段.
         try {
             // 使用 try-catch 捕捉异常, 为了用户未登录也能查询队伍信息，队伍信息的 hasJoin 默认为 false，
             User loginUser = userService.getLoginUser(httpServletRequest);
@@ -105,6 +105,14 @@ public class TeamServiceController {
                 }
             });
         } catch (Exception e) {}
+        // 3. 查询每个队伍加入的人数
+        QueryWrapper<UserTeam> teamJoinNumQuery = new QueryWrapper<>();
+        teamJoinNumQuery.in("teamId", teamIds);
+        // ID => UserTeam 条数
+        Map<Long, List<UserTeam>> teamIdUserTeamList = userTeamService.list(teamJoinNumQuery).stream().collect(Collectors.groupingBy(UserTeam::getTeamId));
+        userTeamList.forEach(team -> {
+            team.setJoinNum(teamIdUserTeamList.getOrDefault(team.getId(), new ArrayList<>()).size());
+        });
         return ResultUtils.success(userTeamList);
     }
 
