@@ -274,33 +274,35 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
                 throw new BussinessException(ErrorCode.PARAMS_ERROR, "队伍密码错误");
             }
         }
-        // 用户最多加入 5 个队伍
-        long userId = loginUser.getId();
-        QueryWrapper<UserTeam> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userId", userId);
-        long joinTeamsNum = userTeamService.count(queryWrapper);
-        if (joinTeamsNum >= 5) {
-            throw new BussinessException(ErrorCode.PARAMS_ERROR, "加入队伍数量超过上限");
+        synchronized (this) {
+            // 用户最多加入 5 个队伍
+            long userId = loginUser.getId();
+            QueryWrapper<UserTeam> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("userId", userId);
+            long joinTeamsNum = userTeamService.count(queryWrapper);
+            if (joinTeamsNum >= 5) {
+                throw new BussinessException(ErrorCode.PARAMS_ERROR, "加入队伍数量超过上限");
+            }
+            // 只能加入未满的队伍
+            queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("teamId", teamId);
+            long hasJoinTeamNum = userTeamService.count(queryWrapper);
+            if (hasJoinTeamNum >= team.getMaxNum()) {
+                throw new BussinessException(ErrorCode.PARAMS_ERROR, "队伍人数已超过上限");
+            }
+            // 不能重复加入已加入的队伍(userId = ? && teamId =?)
+            queryWrapper.eq("userId", userId);
+            long count = userTeamService.count(queryWrapper);
+            if (count > 0) {
+                throw new BussinessException(ErrorCode.PARAMS_ERROR, "用户已加入该队伍");
+            }
+            // 新增队伍-用户关联信息
+            UserTeam userTeam = new UserTeam();
+            userTeam.setUserId(userId);
+            userTeam.setTeamId(teamId);
+            userTeam.setJoinTime(new Date());
+            return userTeamService.save(userTeam);
         }
-        // 只能加入未满的队伍
-        queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("teamId", teamId);
-        long hasJoinTeamNum = userTeamService.count(queryWrapper);
-        if (hasJoinTeamNum >= team.getMaxNum()) {
-            throw new BussinessException(ErrorCode.PARAMS_ERROR, "队伍人数已超过上限");
-        }
-        // 不能重复加入已加入的队伍(userId = ? && teamId =?)
-        queryWrapper.eq("userId", userId);
-        long count = userTeamService.count(queryWrapper);
-        if (count > 0) {
-            throw new BussinessException(ErrorCode.PARAMS_ERROR, "用户已加入该队伍");
-        }
-        // 新增队伍-用户关联信息
-        UserTeam userTeam = new UserTeam();
-        userTeam.setUserId(userId);
-        userTeam.setTeamId(teamId);
-        userTeam.setJoinTime(new Date());
-        return userTeamService.save(userTeam);
     }
 
 
